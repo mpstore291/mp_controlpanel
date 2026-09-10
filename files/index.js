@@ -927,11 +927,50 @@ function ymlVal(text, key) {
 let versionGate = { ready: false, latest: false, current: '', remote: '', url: '', err: '' }
 let versionWait = null
 
-function checkLatest(force) {
-  if (process.env.DAMZ_PACKAGED !== '1') {
-    versionGate = { ready: true, latest: true, current: localVersion(), remote: '', url: '', err: '' }
-    return Promise.resolve(versionGate)
+function ghFetch(url, ms) {
+  const ac = new AbortController()
+  const t = setTimeout(function () { ac.abort() }, ms || 8000)
+  return fetch(url, {
+    headers: {
+      'User-Agent': 'MP-BotControle',
+      Accept: 'application/vnd.github+json'
+    },
+    signal: ac.signal
+  }).finally(function () { clearTimeout(t) })
+}
+
+async function readRemoteVersion(g) {
+  const page = 'https://github.com/' + g.owner + '/' + g.repo + '/releases/latest'
+  const yml = await ghFetch(page + '/download/latest.yml')
+  if (yml.status === 404) return { remote: '', url: page, missing: true }
+  if (yml.ok) {
+    const text = await yml.text()
+    const remote = ymlVal(text, 'version')
+    const file = ymlVal(text, 'path')
+    return {
+      remote: remote,
+      url: file ? (page + '/download/' + encodeURIComponent(file)) : page,
+      missing: !remote
+    }
   }
+  const api = await ghFetch('https://api.github.com/repos/' + g.owner + '/' + g.repo + '/releases/latest')
+  if (api.status === 404) return { remote: '', url: page, missing: true }
+  if (!api.ok) throw new Error('github')
+  const j = await api.json()
+  const remote = String(j.tag_name || j.name || '').replace(/^v/i, '')
+  let url = page
+  const assets = j.assets || []
+  for (let i = 0; i < assets.length; i++) {
+    const n = String(assets[i].name || '')
+    if (/\.exe$/i.test(n) && n.indexOf('latest') < 0) {
+      url = assets[i].browser_download_url || url
+      break
+    }
+  }
+  return { remote: remote, url: url, missing: !remote }
+}
+
+function checkLatest(force) {
   if (force) versionWait = null
   if (versionWait) return versionWait
   versionWait = (async function () {
@@ -939,16 +978,15 @@ function checkLatest(force) {
     const g = githubBits()
     const page = 'https://github.com/' + g.owner + '/' + g.repo + '/releases/latest'
     try {
-      const r = await fetch(page + '/download/latest.yml', { headers: { 'User-Agent': 'MP-BotControle' } })
-      if (!r.ok) throw new Error('github')
-      const text = await r.text()
-      const remote = ymlVal(text, 'version')
-      const file = ymlVal(text, 'path')
-      const url = file ? (page + '/download/' + encodeURIComponent(file)) : page
-      const latest = !remote || verCmp(current, remote) >= 0
-      versionGate = { ready: true, latest: latest, current: current, remote: remote, url: url, err: '' }
+      const info = await readRemoteVersion(g)
+      if (info.missing || !info.remote) {
+        versionGate = { ready: true, latest: true, current: current, remote: '', url: page, err: '' }
+        return versionGate
+      }
+      const latest = verCmp(current, info.remote) >= 0
+      versionGate = { ready: true, latest: latest, current: current, remote: info.remote, url: info.url || page, err: '' }
     } catch (e) {
-      versionGate = { ready: true, latest: false, current: current, remote: '', url: page, err: 'check' }
+      versionGate = { ready: true, latest: true, current: current, remote: '', url: page, err: '' }
     }
     return versionGate
   })()
@@ -1174,11 +1212,12 @@ const server = http.createServer(function (req, res) {
     return
   }
   if (req.method === 'GET' && url === '/api/boot') {
-    const force = String(req.url).indexOf('retry=1') >= 0
-    checkLatest(force).then(function (g) {
+    const retry = String(req.url).indexOf('retry=1') >= 0
+    checkLatest(retry).then(function (g) {
       send(res, 200, 'application/json; charset=utf-8', JSON.stringify({
         ok: true,
         latest: !!g.latest,
+        mustInstall: process.env.DAMZ_PACKAGED === '1' && !g.latest,
         current: g.current,
         remote: g.remote,
         url: g.url,
