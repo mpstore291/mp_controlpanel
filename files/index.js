@@ -1089,6 +1089,21 @@ function passOk(row, pass) {
 
 let ghTokCache = ''
 
+function saveGithubToken(tok) {
+  const v = String(tok || '').trim()
+  if (!v) return ''
+  ghTokCache = v
+  const cur = loadBot()
+  fs.writeFileSync(path.join(dataRoot, 'bot.cfg'), dumpBot({
+    token: cur.token,
+    client_id: cur.client_id,
+    server_id: cur.server_id,
+    port: cur.port || '3784',
+    github_token: v
+  }))
+  return v
+}
+
 function ghAuthToken() {
   return one(loadBot().github_token) || githubBits().token || ghTokCache
 }
@@ -1138,7 +1153,15 @@ async function ghWrite(users, sha, gtoken) {
     headers: headers,
     body: JSON.stringify(body)
   })
+  if (r.status === 401 || r.status === 403) throw new Error('github_auth')
   if (!r.ok) throw new Error('github')
+}
+
+function ghFail(e) {
+  const m = String(e && e.message)
+  if (m === 'github_token') return 'Sæt GitHub token i feltet og tryk Gem token'
+  if (m === 'github_auth') return 'GitHub token virker ikke. Den skal have write til mp_controlpanel'
+  return 'Kunne ikke gemme på GitHub'
 }
 
 function allowed(req) {
@@ -1379,21 +1402,17 @@ const server = http.createServer(function (req, res) {
       let data
       try { data = JSON.parse(raw) } catch (e) { send(res, 400, 'application/json', JSON.stringify({ ok: false })); return }
       const tok = String(data.token || '').trim()
-      const cur = loadBot()
-      fs.writeFileSync(path.join(dataRoot, 'bot.cfg'), dumpBot({
-        token: cur.token,
-        client_id: cur.client_id,
-        server_id: cur.server_id,
-        port: cur.port || '3784',
-        github_token: tok
-      }))
+      if (!tok) {
+        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: 'Sæt GitHub token i feltet' }))
+        return
+      }
+      saveGithubToken(tok)
       ghRead().then(function (pack) {
-        return ghWrite(pack.users, pack.sha, tok ? sealText(tok) : pack.gtoken)
+        return ghWrite(pack.users, pack.sha, sealText(tok))
       }).then(function () {
         send(res, 200, 'application/json', JSON.stringify({ ok: true }))
       }).catch(function (e) {
-        const msg = String(e && e.message) === 'github_token' ? 'Sæt GitHub token først' : 'Token gemt lokalt, men GitHub fejlede'
-        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: msg }))
+        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: ghFail(e) }))
       })
     })
     return
@@ -1407,6 +1426,7 @@ const server = http.createServer(function (req, res) {
       const name = String(data.user || '').trim()
       const pass = String(data.pass || '')
       const seats = Math.max(1, Math.floor(Number(data.seats) || 1))
+      if (data.token) saveGithubToken(data.token)
       if (!name || !pass) {
         send(res, 400, 'application/json', JSON.stringify({ ok: false, err: 'Udfyld bruger og kode' }))
         return
@@ -1425,12 +1445,11 @@ const server = http.createServer(function (req, res) {
           } else next.push(pack.users[i])
         }
         if (!found) next.push(makeUser(name, pass, seats, []))
-        return ghWrite(next, pack.sha, pack.gtoken)
+        return ghWrite(next, pack.sha, pack.gtoken || sealText(ghAuthToken()))
       }).then(function () {
         send(res, 200, 'application/json', JSON.stringify({ ok: true }))
       }).catch(function (e) {
-        const msg = String(e && e.message) === 'github_token' ? 'Sæt GitHub token først' : 'Kunne ikke gemme på GitHub'
-        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: msg }))
+        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: ghFail(e) }))
       })
     })
     return
@@ -1448,8 +1467,7 @@ const server = http.createServer(function (req, res) {
       }).then(function () {
         send(res, 200, 'application/json', JSON.stringify({ ok: true }))
       }).catch(function (e) {
-        const msg = String(e && e.message) === 'github_token' ? 'Sæt GitHub token først' : 'Kunne ikke gemme på GitHub'
-        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: msg }))
+        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: ghFail(e) }))
       })
     })
     return
@@ -1470,8 +1488,7 @@ const server = http.createServer(function (req, res) {
       }).then(function () {
         send(res, 200, 'application/json', JSON.stringify({ ok: true }))
       }).catch(function (e) {
-        const msg = String(e && e.message) === 'github_token' ? 'Sæt GitHub token først' : 'Kunne ikke gemme på GitHub'
-        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: msg }))
+        send(res, 400, 'application/json', JSON.stringify({ ok: false, err: ghFail(e) }))
       })
     })
     return

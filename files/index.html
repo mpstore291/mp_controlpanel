@@ -270,7 +270,7 @@
         <div class="grid">
           <div class="full">
             <label>GitHub token (kun admin, gemmes lokalt)</label>
-            <input id="gh-token" type="password" autocomplete="off">
+            <input id="gh-token" type="password" autocomplete="off" placeholder="github_pat_...">
             <button type="button" id="gh-save" style="margin-top:8px">Gem token</button>
           </div>
           <div>
@@ -775,7 +775,7 @@
       if (!j.ok) throw new Error(j.err || 'token')
       say($('status'), 'GitHub token gemt')
     } catch (e) {
-      say($('status'), 'Kunne ikke gemme token', true)
+      say($('status'), e.message || 'Kunne ikke gemme token', true)
     }
   }
   $('user-add').onclick = async function () {
@@ -784,7 +784,7 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: $('new-user').value, pass: $('new-pass').value, seats: $('new-seats').value })
+        body: JSON.stringify({ user: $('new-user').value, pass: $('new-pass').value, seats: $('new-seats').value, token: $('gh-token').value })
       })
       const j = await r.json()
       if (!j.ok) throw new Error(j.err || 'fejl')
