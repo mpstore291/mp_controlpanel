@@ -1142,7 +1142,8 @@ async function ghWrite(users, sha, gtoken) {
 }
 
 function allowed(req) {
-  if (!userSession(req)) return false
+  const who = userSession(req)
+  if (!who || who.admin) return false
   if (one(loadBot().token)) return true
   return authed(req)
 }
@@ -1232,33 +1233,43 @@ const server = http.createServer(function (req, res) {
       send(res, 200, 'application/json; charset=utf-8', JSON.stringify({ step: 'login' }))
       return
     }
+    if (who.admin) {
+      send(res, 200, 'application/json; charset=utf-8', JSON.stringify({
+        step: 'admin',
+        admin: true,
+        user: who.user
+      }))
+      return
+    }
     const bot = loadBot()
     if (!one(bot.token)) {
       send(res, 200, 'application/json; charset=utf-8', JSON.stringify({
         step: 'token',
-        admin: !!who.admin,
+        admin: false,
         user: who.user,
         online: false
       }))
       return
     }
-    waitReady(20000).then(function (ok) {
+    startBot().catch(function (e) { console.log(e) }).then(function () {
+      return waitReady(20000)
+    }).then(function (ok) {
       if (!ok) {
         send(res, 200, 'application/json; charset=utf-8', JSON.stringify({
           step: 'token',
-          admin: !!who.admin,
+          admin: false,
           user: who.user,
           online: false,
           err: 'Bot kunne ikke starte'
         }))
         return
       }
-      discordBits().then(function (bits) {
+      return discordBits().then(function (bits) {
         const cur = loadBot()
         const step = cur.server_id && bits.guild ? 'app' : 'guild'
         send(res, 200, 'application/json; charset=utf-8', JSON.stringify({
           step: step,
-          admin: !!who.admin,
+          admin: false,
           user: who.user,
           online: true,
           bot: client && client.user ? client.user.tag : '',
@@ -1270,10 +1281,10 @@ const server = http.createServer(function (req, res) {
           guild: bits.guild,
           config: cfgState()
         }))
-      }).catch(function (e) {
-        console.log(e)
-        send(res, 500, 'application/json', JSON.stringify({ step: 'token' }))
       })
+    }).catch(function (e) {
+      console.log(e)
+      send(res, 500, 'application/json', JSON.stringify({ step: 'token' }))
     })
     return
   }
@@ -1466,7 +1477,8 @@ const server = http.createServer(function (req, res) {
     return
   }
   if (req.method === 'POST' && url === '/api/login') {
-    if (!userSession(req)) { send(res, 401, 'application/json', JSON.stringify({ ok: false })); return }
+    const who = userSession(req)
+    if (!who || who.admin) { send(res, 401, 'application/json', JSON.stringify({ ok: false })); return }
     readBody(req, function (raw) {
       let data
       try { data = JSON.parse(raw) } catch (e) { send(res, 400, 'application/json', JSON.stringify({ ok: false })); return }
@@ -1583,10 +1595,4 @@ server.listen(PORT, '0.0.0.0', function () {
   console.log('panel http://127.0.0.1:' + PORT)
   const ips = lanIps()
   for (let i = 0; i < ips.length; i++) console.log('panel http://' + ips[i] + ':' + PORT)
-  const b = loadBot()
-  if (one(b.token)) {
-    startBot().catch(function (e) { console.log('bot start', e) })
-  } else {
-    console.log('åbn panelet og indsæt token')
-  }
 })

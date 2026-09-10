@@ -285,18 +285,20 @@
     <img class="logo" src="/icon.png" alt="">
     <h1>MP BotControle</h1>
     <p id="botname">Tickets</p>
-    <a href="#tickets" data-page="tickets" class="on">Tickets</a>
-    <a href="#panels" data-page="panels">Paneler</a>
+    <a href="#tickets" data-page="tickets" id="nav-tickets" class="on bot-only">Tickets</a>
+    <a href="#panels" data-page="panels" id="nav-panels" class="bot-only">Paneler</a>
     <a href="#users" data-page="users" id="nav-users" class="hide">Brugere</a>
-    <a href="#controls" data-page="controls">Controls</a>
+    <a href="#controls" data-page="controls" id="nav-controls" class="bot-only">Controls</a>
   </aside>
   <div class="wrap">
     <div class="top">
       <div class="status" id="status"></div>
+      <span id="bot-actions">
       <button type="button" id="sync-roles">Sync roller</button>
       <button type="button" id="sync-ch">Sync kanaler</button>
       <button type="button" id="restart">Restart bot</button>
       <button class="gem" type="button" id="save">Gem</button>
+      </span>
     </div>
     <main>
       <section id="page-tickets">
@@ -369,6 +371,7 @@
   let logIds = []
   let page = 'tickets'
   let logTimer = null
+  let isAdmin = false
 
   function $(id) { return document.getElementById(id) }
   function esc(s) {
@@ -503,7 +506,7 @@
   }
 
   function goPage(id) {
-    page = id || 'tickets'
+    page = isAdmin ? 'users' : (id || 'tickets')
     const ids = ['tickets', 'panels', 'users', 'controls']
     for (let i = 0; i < ids.length; i++) {
       const sec = $('page-' + ids[i])
@@ -611,7 +614,18 @@
       show('view-login')
       return
     }
-    $('nav-users').classList.toggle('hide', !j.admin)
+    isAdmin = !!j.admin
+    const botBits = document.querySelectorAll('.bot-only')
+    for (let i = 0; i < botBits.length; i++) botBits[i].classList.toggle('hide', isAdmin)
+    $('bot-actions').classList.toggle('hide', isAdmin)
+    $('nav-users').classList.toggle('hide', !isAdmin)
+    if (j.step === 'admin') {
+      $('botname').textContent = 'Admin'
+      show('view-app')
+      say($('status'), 'Kun brugere')
+      goPage('users')
+      return
+    }
     if (j.step === 'token') {
       show('view-token')
       if (j.err) say($('token-status'), j.err, true)
@@ -631,7 +645,7 @@
     show('view-app')
     say($('status'), j.guild ? j.guild.name : '')
     const hash = (location.hash || '#tickets').replace('#', '')
-    goPage(hash === 'panels' || hash === 'controls' || (hash === 'users' && j.admin) ? hash : 'tickets')
+    goPage(hash === 'panels' || hash === 'controls' ? hash : 'tickets')
   }
 
   $('start').onclick = async function () {
