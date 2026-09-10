@@ -1,7 +1,6 @@
 const fs = require('fs')
 const path = require('path')
 const http = require('http')
-const os = require('os')
 const crypto = require('crypto')
 const {
   Client,
@@ -1208,20 +1207,6 @@ async function checkToken(token) {
   return r.json()
 }
 
-function lanIps() {
-  const out = []
-  const nics = os.networkInterfaces()
-  const ks = Object.keys(nics)
-  for (let i = 0; i < ks.length; i++) {
-    const list = nics[ks[i]] || []
-    for (let j = 0; j < list.length; j++) {
-      const a = list[j]
-      if (a.family === 'IPv4' && !a.internal) out.push(a.address)
-    }
-  }
-  return out
-}
-
 const server = http.createServer(function (req, res) {
   const url = req.url.split('?')[0]
   if (req.method === 'GET' && url === '/icon.png') {
@@ -1601,15 +1586,13 @@ const PORT = Number(one(loadBot().port) || 3784)
 
 server.on('error', function (e) {
   if (e.code === 'EADDRINUSE') {
-    console.log('port ' + PORT + ' er optaget. Luk den anden bot-proces og start start.bat igen.')
+    console.log('port ' + PORT + ' er optaget. Luk MP BotControle og start igen.')
     process.exit(1)
   }
   console.log(e)
   process.exit(1)
 })
 
-server.listen(PORT, '0.0.0.0', function () {
+server.listen(PORT, '127.0.0.1', function () {
   console.log('panel http://127.0.0.1:' + PORT)
-  const ips = lanIps()
-  for (let i = 0; i < ips.length; i++) console.log('panel http://' + ips[i] + ':' + PORT)
 })

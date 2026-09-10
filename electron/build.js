@@ -12,6 +12,20 @@ function val(file, key) {
   return ''
 }
 
+function githubToken() {
+  if (process.env.GH_TOKEN) return process.env.GH_TOKEN
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN
+  const files = [
+    path.join(process.env.APPDATA || '', 'MP BotControle', 'bot.cfg'),
+    path.join(__dirname, '..', 'files', 'bot.cfg')
+  ]
+  for (let i = 0; i < files.length; i++) {
+    const t = val(files[i], 'github_token')
+    if (t) return t
+  }
+  return ''
+}
+
 const cfg = path.join(__dirname, 'github.cfg')
 const owner = val(cfg, 'owner')
 const repo = val(cfg, 'repo')
@@ -23,15 +37,28 @@ if (!owner || !repo) {
   process.exit(1)
 }
 
+const tok = githubToken()
+const pub = tok ? 'always' : 'never'
+if (tok) console.log('Uploader installer til GitHub Release...')
+else console.log('Ingen GitHub token. Bygger kun lokalt.')
+
 const args = [
   'electron-builder',
   '--win',
   'nsis',
   '--publish',
-  'never',
+  pub,
   '-c.publish.provider=github',
   '-c.publish.owner=' + owner,
-  '-c.publish.repo=' + repo
+  '-c.publish.repo=' + repo,
+  '-c.publish.releaseType=release'
 ]
-const r = spawnSync('npx', args, { stdio: 'inherit', shell: true, cwd: path.join(__dirname, '..') })
+const env = Object.assign({}, process.env)
+if (tok) env.GH_TOKEN = tok
+const r = spawnSync('npx', args, {
+  stdio: 'inherit',
+  shell: true,
+  cwd: path.join(__dirname, '..'),
+  env: env
+})
 process.exit(r.status == null ? 1 : r.status)

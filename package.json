@@ -1,6 +1,6 @@
 {
   "name": "damz-bot",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Ticket bot",
   "author": "MP",
   "productName": "MP BotControle",
@@ -73,7 +73,8 @@
     "publish": {
       "provider": "github",
       "owner": "mpstore291",
-      "repo": "mp_controlpanel"
+      "repo": "mp_controlpanel",
+      "releaseType": "release"
     }
   }
 }

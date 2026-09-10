@@ -31,6 +31,6 @@ if errorlevel 1 (
 )
 
 echo.
-echo Nulstillet. Start start.bat igen.
+echo Nulstillet. Start MP BotControle igen.
 echo.
 pause
