@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MP BotControle</title>
+<link rel="icon" href="/icon.png">
+<style>
+  :root {
+    --bg: #070707;
+    --bg2: #101010;
+    --bg3: #171717;
+    --line: #262626;
+    --text: #f2f2f2;
+    --dim: #8a8a8a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  html.el body { padding-top: 36px; }
+  .drag {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: #000;
+    z-index: 80;
+    -webkit-app-region: drag;
+  }
+  html.el .drag { display: block; }
+  body { display: flex; }
+  .hide { display: none !important; }
+  aside {
+    width: 230px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--line);
+    background: #000;
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  aside h1 { margin: 0 0 4px; font-size: 18px; font-weight: 650; }
+  .logo { width: 42px; height: 42px; display: block; margin: 0 0 14px; }
+  aside p { margin: 0 0 22px; color: var(--dim); font-size: 12px; }
+  aside a {
+    color: var(--dim);
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+  aside a.on, aside a:hover { color: #fff; background: #1a1a1a; }
+  .wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--line);
+    background: #000;
+    flex-wrap: wrap;
+  }
+  button {
+    border: 1px solid var(--line);
+    background: #141414;
+    color: #fff;
+    font: inherit;
+    padding: 8px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  button:hover { border-color: #555; }
+  button.gem { background: #fff; color: #000; border-color: #fff; font-weight: 650; }
+  button.gem:hover { background: #ddd; }
+  .status { color: var(--dim); font-size: 12px; margin-right: auto; }
+  .err { color: #ff6b6b; }
+  main { flex: 1; overflow: auto; padding: 28px 32px 80px; }
+  h2 { margin: 0 0 14px; font-size: 15px; font-weight: 650; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+  .full { grid-column: 1 / -1; }
+  label { display: block; color: var(--dim); font-size: 11px; margin-bottom: 6px; }
+  input, textarea, select {
+    width: 100%;
+    background: var(--bg2);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 9px 11px;
+    font: inherit;
+    outline: none;
+  }
+  select[multiple] { min-height: 110px; }
+  input:focus, textarea:focus, select:focus { border-color: #555; }
+  textarea { min-height: 78px; resize: vertical; }
+  .picked { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #121212;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 5px 6px 5px 10px;
+  }
+  .chip span { font-size: 13px; }
+  .minus {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    line-height: 1;
+    font-size: 18px;
+    color: #bbb;
+  }
+  .minus:hover { color: #fff; border-color: #666; }
+  .cat {
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .cathead { display: flex; gap: 10px; align-items: end; margin-bottom: 12px; flex-wrap: wrap; }
+  .cathead .nm { flex: 1; min-width: 120px; }
+  .hint { margin: 0 0 18px; color: var(--dim); font-size: 13px; max-width: 720px; line-height: 1.45; }
+  .slet { height: 38px; color: #aaa; }
+  .add {
+    background: transparent;
+    border-style: dashed;
+    width: 100%;
+    padding: 14px;
+  }
+  .chk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dim);
+    font-size: 13px;
+    margin: 0;
+  }
+  .chk input { width: auto; }
+  .logbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  #log-view {
+    margin: 0;
+    min-height: 360px;
+    max-height: calc(100vh - 220px);
+    overflow: auto;
+    background: #0a0a0a;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font: 12px/1.55 Consolas, "Segoe UI Mono", monospace;
+    color: #cfcfcf;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .gate {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    width: 420px;
+    max-width: calc(100% - 40px);
+    background: var(--bg3);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px;
+  }
+  .card h1 { margin: 0 0 6px; font-size: 20px; }
+  .card p { margin: 0 0 18px; color: var(--dim); font-size: 13px; }
+  .card button { width: 100%; margin-top: 14px; }
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    transition: opacity .5s ease;
+  }
+  #splash.done { opacity: 0; pointer-events: none; }
+  .splash-logo {
+    width: 92px;
+    height: 92px;
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: .75; transform: scale(.98); }
+    50% { opacity: 1; transform: scale(1.02); }
+  }
+  .splash-bar {
+    width: 240px;
+    height: 3px;
+    border-radius: 2px;
+    background: #1a1a1a;
+    overflow: hidden;
+  }
+  .splash-bar span {
+    display: block;
+    height: 100%;
+    width: 35%;
+    border-radius: 2px;
+    background: #fff;
+    animation: slide 1.5s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(385%); }
+  }
+  .splash-text { color: var(--dim); font-size: 13px; letter-spacing: .3px; text-align: center; max-width: 360px; }
+  .splash-get {
+    background: #fff;
+    color: #000;
+    text-decoration: none;
+    font-weight: 650;
+    padding: 10px 16px;
+    border-radius: 7px;
+  }
+  .splash-get:hover { background: #ddd; }
+  @media (max-width: 860px) {
+    body { display: block; }
+    aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="drag"></div>
+<div id="splash">
+  <img class="splash-logo" src="/icon.png" alt="">
+  <div class="splash-bar" id="splash-bar"><span></span></div>
+  <div class="splash-text" id="splash-text">Starter op...</div>
+  <a class="splash-get hide" id="splash-get" href="#" target="_blank" rel="noreferrer">Hent ny installer</a>
+  <button class="hide" id="splash-retry" type="button">Prøv igen</button>
+</div>
+<div class="gate" id="view-login">
+  <div class="card">
+    <h1>Login</h1>
+    <p>Log ind for at bruge MP BotControle.</p>
+    <label>Bruger</label>
+    <input id="login-user" autocomplete="username">
+    <label style="margin-top:12px">Kode</label>
+    <input id="login-pass" type="password" autocomplete="current-password">
+    <button class="gem" id="login-go" type="button">Log ind</button>
+    <div class="status" id="login-status"></div>
+  </div>
+</div>
+
+<div class="gate hide" id="view-token">
+  <div class="card">
+    <h1>Adgang</h1>
+    <p>Indsæt bot token for at starte.</p>
+    <label>Bot token</label>
+    <input id="token" type="password" autocomplete="off">
+    <button class="gem" id="start" type="button">Start bot</button>
+    <div class="status" id="token-status"></div>
+  </div>
+</div>
+
+<div class="gate hide" id="view-guild">
+  <div class="card">
+    <h1>Vælg server</h1>
+    <p>Vælg den Discord server botten skal køre på.</p>
+    <label>Server</label>
+    <select id="guild"></select>
+    <button class="gem" id="pick" type="button">Fortsæt</button>
+    <div class="status" id="guild-status"></div>
+  </div>
+</div>
+
+<div class="hide" id="view-app" style="display:contents">
+  <aside>
+    <img class="logo" src="/icon.png" alt="">
+    <h1>MP BotControle</h1>
+    <p id="botname">Tickets</p>
+    <a href="#tickets" data-page="tickets" class="on">Tickets</a>
+    <a href="#panels" data-page="panels">Paneler</a>
+    <a href="#users" data-page="users" id="nav-users" class="hide">Brugere</a>
+    <a href="#controls" data-page="controls">Controls</a>
+  </aside>
+  <div class="wrap">
+    <div class="top">
+      <div class="status" id="status"></div>
+      <button type="button" id="sync-roles">Sync roller</button>
+      <button type="button" id="sync-ch">Sync kanaler</button>
+      <button type="button" id="restart">Restart bot</button>
+      <button class="gem" type="button" id="save">Gem</button>
+    </div>
+    <main>
+      <section id="page-tickets">
+        <h2>Tickets</h2>
+        <div class="grid">
+          <div>
+            <label>Log kanal</label>
+            <div id="log_box"></div>
+          </div>
+          <div>
+            <label>Staff roller</label>
+            <div id="staff_box"></div>
+          </div>
+        </div>
+        <h2 style="margin-top:36px">Kategorier</h2>
+        <div id="cats"></div>
+        <button class="add" id="add" type="button">Tilføj kategori</button>
+      </section>
+      <section id="page-panels" class="hide">
+        <h2>Paneler</h2>
+        <div id="panels"></div>
+        <button class="add" id="add-panel" type="button">Tilføj panel</button>
+      </section>
+      <section id="page-users" class="hide">
+        <h2>Brugere</h2>
+        <p class="hint">Når du sælger et login, sæt 1 pc. Første gang køberen logger ind, låses login til den maskine. En ven med samme login på en anden pc bliver afvist. Bot-indstillinger gemmes kun hos køberen og bliver ikke delt.</p>
+        <div class="grid">
+          <div class="full">
+            <label>GitHub token (kun admin, gemmes lokalt)</label>
+            <input id="gh-token" type="password" autocomplete="off">
+            <button type="button" id="gh-save" style="margin-top:8px">Gem token</button>
+          </div>
+          <div>
+            <label>Ny bruger</label>
+            <input id="new-user" autocomplete="off">
+          </div>
+          <div>
+            <label>Kode</label>
+            <input id="new-pass" type="password" autocomplete="off">
+          </div>
+          <div class="full">
+            <label>Hvor mange pc'er må login bruges på</label>
+            <input id="new-seats" type="number" min="1" step="1" value="1">
+          </div>
+          <div class="full">
+            <button class="gem" type="button" id="user-add">Opret og push til GitHub</button>
+          </div>
+        </div>
+        <div id="user-list" style="margin-top:22px"></div>
+      </section>
+      <section id="page-controls" class="hide">
+        <h2>Info</h2>
+        <div class="logbar">
+          <button type="button" id="log-refresh">Refresh</button>
+          <label class="chk"><input id="log-auto" type="checkbox" checked> Auto-refresh every 3 seconds</label>
+        </div>
+        <pre id="log-view"></pre>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+  let cats = []
+  let panels = []
+  let roles = []
+  let categories = []
+  let channels = []
+  let staffIds = []
+  let logIds = []
+  let page = 'tickets'
+  let logTimer = null
+
+  function $(id) { return document.getElementById(id) }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+  }
+  function say(el, t, bad) {
+    el.textContent = t || ''
+    el.className = 'status ' + (bad ? 'err' : '')
+  }
+  function show(id) {
+    $('view-login').classList.add('hide')
+    $('view-token').classList.add('hide')
+    $('view-guild').classList.add('hide')
+    $('view-app').classList.add('hide')
+    $('view-app').style.display = 'none'
+    if (id === 'view-app') {
+      $('view-app').classList.remove('hide')
+      $('view-app').style.display = 'contents'
+    } else {
+      $(id).classList.remove('hide')
+    }
+  }
+  function ids(v) {
+    return String(v || '').split(/[, ]+/).filter(Boolean)
+  }
+  function opts(list, selected, extra) {
+    const sel = Array.isArray(selected) ? selected : ids(selected)
+    let h = extra || ''
+    for (let i = 0; i < list.length; i++) {
+      const it = list[i]
+      h += '<option value="' + esc(it.id) + '"' + (sel.indexOf(it.id) >= 0 ? ' selected' : '') + '>' + esc(it.name) + '</option>'
+    }
+    return h
+  }
+  function nameOf(list, id) {
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].id === id) return list[i].name
+    }
+    return id
+  }
+  function pickerHtml(list, selected, key, idx) {
+    const sel = Array.isArray(selected) ? selected.slice() : ids(selected)
+    let h = '<div class="picked">'
+    for (let i = 0; i < sel.length; i++) {
+      h += '<div class="chip"><span>' + esc(nameOf(list, sel[i])) + '</span><button type="button" class="minus" data-rm="' + key + '" data-i="' + idx + '" data-id="' + esc(sel[i]) + '">−</button></div>'
+    }
+    h += '</div><select class="adder" data-add="' + key + '" data-i="' + idx + '"><option value="">Vælg...</option>'
+    for (let i = 0; i < list.length; i++) {
+      if (sel.indexOf(list[i].id) >= 0) continue
+      h += '<option value="' + esc(list[i].id) + '">' + esc(list[i].name) + '</option>'
+    }
+    h += '</select>'
+    return h
+  }
+  function drawPicks() {
+    $('staff_box').innerHTML = pickerHtml(roles, staffIds, 'staff', -1)
+    $('log_box').innerHTML = pickerHtml(channels, logIds, 'log', -1)
+  }
+  function addPick(key, i, id) {
+    if (!id) return
+    if (key === 'staff') {
+      if (staffIds.indexOf(id) < 0) staffIds.push(id)
+      drawPicks()
+      return
+    }
+    if (key === 'log') {
+      if (logIds.indexOf(id) < 0) logIds.push(id)
+      drawPicks()
+      return
+    }
+    if (!cats[i]) return
+    if (key === 'tag') {
+      const arr = ids(cats[i].tag)
+      if (arr.indexOf(id) < 0) arr.push(id)
+      cats[i].tag = arr.join(',')
+    }
+    if (key === 'open_in') {
+      const arr = ids(cats[i].open_in)
+      if (arr.indexOf(id) < 0) arr.push(id)
+      cats[i].open_in = arr.join(',')
+    }
+    drawCats()
+  }
+  function rmPick(key, i, id) {
+    if (key === 'staff') {
+      staffIds = staffIds.filter(function (x) { return x !== id })
+      drawPicks()
+      return
+    }
+    if (key === 'log') {
+      logIds = logIds.filter(function (x) { return x !== id })
+      drawPicks()
+      return
+    }
+    if (!cats[i]) return
+    if (key === 'tag') cats[i].tag = ids(cats[i].tag).filter(function (x) { return x !== id }).join(',')
+    if (key === 'open_in') cats[i].open_in = ids(cats[i].open_in).filter(function (x) { return x !== id }).join(',')
+    drawCats()
+  }
+
+  function drawPanels() {
+    const box = $('panels')
+    box.innerHTML = ''
+    for (let i = 0; i < panels.length; i++) {
+      const p = panels[i]
+      const el = document.createElement('div')
+      el.className = 'cat'
+      el.innerHTML =
+        '<div class="cathead">' +
+          '<div class="nm"><label>Navn</label><input data-pk="name" data-i="' + i + '" value="' + esc(p.name) + '"></div>' +
+          '<button class="slet" type="button" data-pdel="' + i + '">Slet</button>' +
+        '</div>' +
+        '<div class="grid">' +
+          '<div><label>Command</label><input data-pk="command" data-i="' + i + '" value="' + esc(p.command) + '" placeholder="panel"></div>' +
+          '<div><label>Panel beskrivelse</label><input data-pk="description" data-i="' + i + '" value="' + esc(p.description) + '"></div>' +
+          '<div class="full"><label>Embed titel</label><input data-pk="title" data-i="' + i + '" value="' + esc(p.title) + '"></div>' +
+          '<div class="full"><label>Embed beskrivelse</label><textarea data-pk="text" data-i="' + i + '">' + esc(p.text) + '</textarea></div>' +
+        '</div>'
+      box.appendChild(el)
+    }
+  }
+
+  function pullPanels() {
+    const inputs = document.querySelectorAll('#panels [data-pk]')
+    for (let n = 0; n < inputs.length; n++) {
+      const el = inputs[n]
+      const i = Number(el.getAttribute('data-i'))
+      const k = el.getAttribute('data-pk')
+      if (!panels[i]) continue
+      panels[i][k] = el.value
+    }
+  }
+
+  function goPage(id) {
+    page = id || 'tickets'
+    const ids = ['tickets', 'panels', 'users', 'controls']
+    for (let i = 0; i < ids.length; i++) {
+      const sec = $('page-' + ids[i])
+      if (sec) sec.classList.toggle('hide', ids[i] !== page)
+    }
+    const links = document.querySelectorAll('aside a[data-page]')
+    for (let i = 0; i < links.length; i++) {
+      links[i].classList.toggle('on', links[i].getAttribute('data-page') === page)
+    }
+    if (page === 'controls') loadLogs()
+    if (page === 'users') loadUsers().catch(function () { $('user-list').textContent = 'Kunne ikke hente brugere' })
+    tickLogs()
+  }
+
+  function tickLogs() {
+    if (logTimer) {
+      clearInterval(logTimer)
+      logTimer = null
+    }
+    if (page !== 'controls') return
+    if (!$('log-auto').checked) return
+    logTimer = setInterval(loadLogs, 3000)
+  }
+
+  async function loadLogs() {
+    try {
+      const r = await fetch('/api/logs', { credentials: 'same-origin' })
+      const j = await r.json()
+      const lines = j.lines || []
+      let out = ''
+      for (let i = 0; i < lines.length; i++) {
+        const x = lines[i]
+        const d = new Date(x.t)
+        const hh = String(d.getHours()).padStart(2, '0')
+        const mm = String(d.getMinutes()).padStart(2, '0')
+        const ss = String(d.getSeconds()).padStart(2, '0')
+        out += hh + ':' + mm + ':' + ss + '  ' + (x.level || 'log') + '  ' + (x.msg || '') + '\n'
+      }
+      $('log-view').textContent = out || 'Ingen logs endnu.'
+      $('log-view').scrollTop = $('log-view').scrollHeight
+    } catch (e) {
+      $('log-view').textContent = 'Kunne ikke hente logs'
+    }
+  }
+
+  function drawCats() {
+    const box = $('cats')
+    box.innerHTML = ''
+    for (let i = 0; i < cats.length; i++) {
+      const c = cats[i]
+      const el = document.createElement('div')
+      el.className = 'cat'
+      el.innerHTML =
+        '<div class="cathead">' +
+          '<div class="nm"><label>Navn</label><input data-k="name" data-i="' + i + '" value="' + esc(c.name) + '"></div>' +
+          '<button class="slet" type="button" data-del="' + i + '">Slet</button>' +
+        '</div>' +
+        '<div class="grid">' +
+          '<div><label>Emoji</label><input data-k="emoji" data-i="' + i + '" value="' + esc(c.emoji) + '"></div>' +
+          '<div><label>Åbn i</label>' + pickerHtml(categories, c.open_in, 'open_in', i) + '</div>' +
+          '<div class="full"><label>Tekst i dropdown</label><input data-k="text" data-i="' + i + '" value="' + esc(c.text) + '"></div>' +
+          '<div class="full"><label>Tag roller</label>' + pickerHtml(roles, c.tag, 'tag', i) + '</div>' +
+          '<div class="full"><label>Besked i ticket</label><textarea data-k="message" data-i="' + i + '">' + esc(c.message) + '</textarea></div>' +
+          '<div class="full"><label>Spørgsmål (en pr linje)</label><textarea data-k="question" data-i="' + i + '">' + esc(c.question) + '</textarea></div>' +
+        '</div>'
+      box.appendChild(el)
+    }
+  }
+
+  function pullCats() {
+    const inputs = document.querySelectorAll('#cats [data-k]')
+    for (let n = 0; n < inputs.length; n++) {
+      const el = inputs[n]
+      const i = Number(el.getAttribute('data-i'))
+      const k = el.getAttribute('data-k')
+      if (!cats[i]) continue
+      cats[i][k] = el.value
+    }
+  }
+
+  function applyBits(bits) {
+    if (!bits) return
+    roles = bits.roles || []
+    categories = bits.categories || []
+    channels = bits.channels || []
+    pullCats()
+    drawPicks()
+    drawCats()
+  }
+
+  function applyConfig(cfg) {
+    staffIds = ids(cfg.staff_roles)
+    logIds = ids(cfg.log_channel)
+    cats = cfg.categories && cfg.categories.length ? cfg.categories : []
+    panels = cfg.panels && cfg.panels.length ? cfg.panels : []
+    drawPicks()
+    drawCats()
+    drawPanels()
+  }
+
+  async function load() {
+    const r = await fetch('/api/state', { credentials: 'same-origin' })
+    const j = await r.json()
+    if (j.step === 'login') {
+      show('view-login')
+      return
+    }
+    $('nav-users').classList.toggle('hide', !j.admin)
+    if (j.step === 'token') {
+      show('view-token')
+      if (j.err) say($('token-status'), j.err, true)
+      return
+    }
+    if (j.step === 'guild') {
+      const s = $('guild')
+      s.innerHTML = opts(j.guilds || [], j.server_id, '<option value="">-</option>')
+      show('view-guild')
+      return
+    }
+    $('botname').textContent = j.bot || 'Tickets'
+    roles = j.roles || []
+    categories = j.categories || []
+    channels = j.channels || []
+    applyConfig(j.config || {})
+    show('view-app')
+    say($('status'), j.guild ? j.guild.name : '')
+    const hash = (location.hash || '#tickets').replace('#', '')
+    goPage(hash === 'panels' || hash === 'controls' || (hash === 'users' && j.admin) ? hash : 'tickets')
+  }
+
+  $('start').onclick = async function () {
+    say($('token-status'), 'Starter...')
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: $('token').value })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.err || 'fejl')
+      await load()
+    } catch (e) {
+      say($('token-status'), e.message || 'Ugyldig token', true)
+    }
+  }
+
+  $('pick').onclick = async function () {
+    const id = $('guild').value
+    if (!id) { say($('guild-status'), 'Vælg en server', true); return }
+    say($('guild-status'), 'Gemmer...')
+    const r = await fetch('/api/guild', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id })
+    })
+    const j = await r.json()
+    if (!j.ok) { say($('guild-status'), 'Kunne ikke vælge server', true); return }
+    await load()
+  }
+
+  async function sync() {
+    const r = await fetch('/api/sync', { method: 'POST', credentials: 'same-origin' })
+    const j = await r.json()
+    if (!j.ok) throw new Error('sync')
+    applyBits(j.bits)
+  }
+
+  $('sync-roles').onclick = async function () {
+    try { await sync(); say($('status'), 'Roller opdateret') } catch (e) { say($('status'), 'Sync fejlede', true) }
+  }
+  $('sync-ch').onclick = async function () {
+    try { await sync(); say($('status'), 'Kanaler opdateret') } catch (e) { say($('status'), 'Sync fejlede', true) }
+  }
+  $('restart').onclick = async function () {
+    say($('status'), 'Genstarter...')
+    try {
+      const r = await fetch('/api/restart', { method: 'POST', credentials: 'same-origin' })
+      const j = await r.json()
+      if (!j.ok) throw new Error('restart')
+      say($('status'), j.bot ? ('Online ' + j.bot) : 'Genstartet')
+      await load()
+    } catch (e) {
+      say($('status'), 'Restart fejlede', true)
+    }
+  }
+  $('save').onclick = async function () {
+    pullCats()
+    pullPanels()
+    try {
+      const r = await fetch('/api/save', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_channel: logIds.join(','),
+          staff_roles: staffIds.join(','),
+          categories: cats,
+          panels: panels
+        })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error('save')
+      say($('status'), 'Gemt lokalt på denne pc')
+    } catch (e) {
+      say($('status'), 'Kunne ikke gemme', true)
+    }
+  }
+  $('cats').addEventListener('input', function (e) {
+    const t = e.target
+    if (!t.getAttribute('data-k')) return
+    const i = Number(t.getAttribute('data-i'))
+    if (!cats[i]) return
+    cats[i][t.getAttribute('data-k')] = t.value
+  })
+  $('cats').addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-del]')
+    if (!btn) return
+    pullCats()
+    cats.splice(Number(btn.getAttribute('data-del')), 1)
+    drawCats()
+  })
+  document.addEventListener('change', function (e) {
+    const s = e.target.closest('[data-add]')
+    if (!s || !s.value) return
+    addPick(s.getAttribute('data-add'), Number(s.getAttribute('data-i')), s.value)
+  })
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-rm]')
+    if (!btn) return
+    rmPick(btn.getAttribute('data-rm'), Number(btn.getAttribute('data-i')), btn.getAttribute('data-id'))
+  })
+  $('add').onclick = function () {
+    pullCats()
+    cats.push({ name: 'Ny kategori', emoji: '', text: '', tag: '', open_in: '', message: '', question: '' })
+    drawCats()
+  }
+  $('add-panel').onclick = function () {
+    pullPanels()
+    panels.push({ name: 'Nyt panel', command: '', description: '', title: '', text: '' })
+    drawPanels()
+  }
+  $('panels').addEventListener('input', function (e) {
+    const t = e.target
+    if (!t.getAttribute('data-pk')) return
+    const i = Number(t.getAttribute('data-i'))
+    if (!panels[i]) return
+    panels[i][t.getAttribute('data-pk')] = t.value
+  })
+  $('panels').addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-pdel]')
+    if (!btn) return
+    pullPanels()
+    panels.splice(Number(btn.getAttribute('data-pdel')), 1)
+    drawPanels()
+  })
+  document.querySelectorAll('aside a[data-page]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault()
+      goPage(a.getAttribute('data-page'))
+      location.hash = a.getAttribute('data-page')
+    })
+  })
+  $('log-refresh').onclick = function () { loadLogs() }
+  $('log-auto').onchange = function () { tickLogs() }
+
+  async function loadUsers() {
+    const r = await fetch('/api/admin/users', { credentials: 'same-origin' })
+    const j = await r.json()
+    if (!j.ok) throw new Error(j.err || 'users')
+    const box = $('user-list')
+    if (!j.users.length) {
+      box.textContent = 'Ingen brugere endnu.'
+      return
+    }
+    let h = ''
+    for (let i = 0; i < j.users.length; i++) {
+      const u = j.users[i]
+      h += '<div class="cat"><div class="cathead"><div class="nm"><label>Bruger</label><input value="' + esc(u.user) + '" readonly></div><div class="nm"><label>Kode</label><input value="' + esc(u.pass) + '" readonly></div><div class="nm"><label>Pc\'er</label><input value="' + esc(u.pcs + ' / ' + u.seats) + '" readonly></div><button type="button" data-ureset="' + esc(u.user) + '">Ny pc</button><button class="slet" type="button" data-udel="' + esc(u.user) + '">Slet</button></div></div>'
+    }
+    box.innerHTML = h
+  }
+
+  $('login-go').onclick = async function () {
+    say($('login-status'), 'Tjekker...')
+    try {
+      const r = await fetch('/api/user-login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: $('login-user').value, pass: $('login-pass').value })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.err || 'Login fejlede')
+      await load()
+    } catch (e) {
+      say($('login-status'), e.message || 'Login fejlede', true)
+    }
+  }
+  $('login-pass').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('login-go').click()
+  })
+  $('gh-save').onclick = async function () {
+    try {
+      const r = await fetch('/api/admin/github-token', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: $('gh-token').value })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.err || 'token')
+      say($('status'), 'GitHub token gemt')
+    } catch (e) {
+      say($('status'), 'Kunne ikke gemme token', true)
+    }
+  }
+  $('user-add').onclick = async function () {
+    try {
+      const r = await fetch('/api/admin/users', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: $('new-user').value, pass: $('new-pass').value, seats: $('new-seats').value })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.err || 'fejl')
+      $('new-user').value = ''
+      $('new-pass').value = ''
+      $('new-seats').value = '1'
+      say($('status'), 'Bruger pushet')
+      await loadUsers()
+    } catch (e) {
+      say($('status'), e.message || 'Kunne ikke oprette', true)
+    }
+  }
+  $('user-list').addEventListener('click', async function (e) {
+    const reset = e.target.closest('[data-ureset]')
+    if (reset) {
+      try {
+        const r = await fetch('/api/admin/users/reset-pc', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user: reset.getAttribute('data-ureset') })
+        })
+        const j = await r.json()
+        if (!j.ok) throw new Error(j.err || 'fejl')
+        await loadUsers()
+      } catch (err) {
+        say($('status'), err.message || 'Kunne ikke nulstille', true)
+      }
+      return
+    }
+    const btn = e.target.closest('[data-udel]')
+    if (!btn) return
+    try {
+      const r = await fetch('/api/admin/users/delete', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: btn.getAttribute('data-udel') })
+      })
+      const j = await r.json()
+      if (!j.ok) throw new Error(j.err || 'fejl')
+      await loadUsers()
+    } catch (err) {
+      say($('status'), err.message || 'Kunne ikke slette', true)
+    }
+  })
+
+  if (navigator.userAgent.indexOf('Electron') >= 0) document.documentElement.classList.add('el')
+
+  async function boot(retry) {
+    $('splash-get').classList.add('hide')
+    $('splash-retry').classList.add('hide')
+    $('splash-bar').classList.remove('hide')
+    $('splash-text').textContent = 'Søger efter opdateringer...'
+    try {
+      const r = await fetch('/api/boot' + (retry ? '?retry=1' : ''), { credentials: 'same-origin' })
+      const j = await r.json()
+      if (j.latest) {
+        $('splash-text').textContent = 'Du kører den nyeste version'
+        setTimeout(function () {
+          const sp = $('splash')
+          sp.classList.add('done')
+          load().catch(function () { show('view-login') })
+          setTimeout(function () { if (sp.parentNode) sp.remove() }, 600)
+        }, 700)
+        return
+      }
+      $('splash-bar').classList.add('hide')
+      if (j.err === 'check') {
+        $('splash-text').textContent = 'Kunne ikke tjekke version. Tjek nettet.'
+        $('splash-retry').classList.remove('hide')
+        return
+      }
+      $('splash-text').textContent = 'Du kører ikke den nyeste version. Installer igen.'
+      const a = $('splash-get')
+      a.href = j.url || '#'
+      a.classList.remove('hide')
+    } catch (e) {
+      $('splash-bar').classList.add('hide')
+      $('splash-text').textContent = 'Kunne ikke tjekke version. Tjek nettet.'
+      $('splash-retry').classList.remove('hide')
+    }
+  }
+
+  $('splash-retry').onclick = function () { boot(true) }
+  boot(false)
+</script>
+</body>
+</html>

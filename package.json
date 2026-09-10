@@ -1,0 +1,77 @@
+{
+  "name": "damz-bot",
+  "version": "1.0.0",
+  "description": "Ticket bot",
+  "author": "MP",
+  "productName": "MP BotControle",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mpstore291/mp_controlpanel.git"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "bot": "node files/index.js",
+    "build": "node electron/build.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "electron-updater": "^6.3.9"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "jimp": "^1.6.1",
+    "png-to-ico": "^3.0.2"
+  },
+  "build": {
+    "appId": "com.mp.botcontrole",
+    "productName": "MP BotControle",
+    "icon": "build/icon.ico",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/main.js",
+      "files/index.js",
+      "files/index.html",
+      "files/icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "electron/defaults",
+        "to": "defaults"
+      },
+      {
+        "from": "electron/github.cfg",
+        "to": "github.cfg"
+      }
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MP BotControle",
+      "uninstallDisplayName": "MP BotControle",
+      "artifactName": "mp_botcontrole_setup_${version}.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "mpstore291",
+      "repo": "mp_controlpanel"
+    }
+  }
+}
