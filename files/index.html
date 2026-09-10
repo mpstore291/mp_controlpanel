@@ -178,57 +178,6 @@
   .card h1 { margin: 0 0 6px; font-size: 20px; }
   .card p { margin: 0 0 18px; color: var(--dim); font-size: 13px; }
   .card button { width: 100%; margin-top: 14px; }
-  #splash {
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    background: #000;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 22px;
-    transition: opacity .5s ease;
-  }
-  #splash.done { opacity: 0; pointer-events: none; }
-  .splash-logo {
-    width: 92px;
-    height: 92px;
-    animation: breathe 2.4s ease-in-out infinite;
-  }
-  @keyframes breathe {
-    0%, 100% { opacity: .75; transform: scale(.98); }
-    50% { opacity: 1; transform: scale(1.02); }
-  }
-  .splash-bar {
-    width: 240px;
-    height: 3px;
-    border-radius: 2px;
-    background: #1a1a1a;
-    overflow: hidden;
-  }
-  .splash-bar span {
-    display: block;
-    height: 100%;
-    width: 35%;
-    border-radius: 2px;
-    background: #fff;
-    animation: slide 1.5s ease-in-out infinite;
-  }
-  @keyframes slide {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(385%); }
-  }
-  .splash-text { color: var(--dim); font-size: 13px; letter-spacing: .3px; text-align: center; max-width: 360px; }
-  .splash-get {
-    background: #fff;
-    color: #000;
-    text-decoration: none;
-    font-weight: 650;
-    padding: 10px 16px;
-    border-radius: 7px;
-  }
-  .splash-get:hover { background: #ddd; }
   @media (max-width: 860px) {
     body { display: block; }
     aside { width: auto; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -238,13 +187,6 @@
 </head>
 <body>
 <div class="drag"></div>
-<div id="splash">
-  <img class="splash-logo" src="/icon.png" alt="">
-  <div class="splash-bar" id="splash-bar"><span></span></div>
-  <div class="splash-text" id="splash-text">Starter op...</div>
-  <a class="splash-get hide" id="splash-get" href="#" target="_blank" rel="noreferrer">Hent ny installer</a>
-  <button class="hide" id="splash-retry" type="button">Prøv igen</button>
-</div>
 <div class="gate" id="view-login">
   <div class="card">
     <h1>Login</h1>
@@ -891,44 +833,7 @@
   })
 
   if (navigator.userAgent.indexOf('Electron') >= 0) document.documentElement.classList.add('el')
-
-  function finishSplash() {
-    const sp = $('splash')
-    if (!sp || sp.classList.contains('done')) {
-      load().catch(function () { show('view-login') })
-      return
-    }
-    sp.classList.add('done')
-    load().catch(function () { show('view-login') })
-    setTimeout(function () { if (sp.parentNode) sp.remove() }, 600)
-  }
-
-  async function boot(retry) {
-    $('splash-get').classList.add('hide')
-    $('splash-retry').classList.add('hide')
-    $('splash-bar').classList.remove('hide')
-    $('splash-text').textContent = 'Søger efter opdateringer...'
-    try {
-      const r = await fetch('/api/boot' + (retry ? '?retry=1' : ''), { credentials: 'same-origin' })
-      const j = await r.json()
-      if (!j.mustInstall) {
-        $('splash-text').textContent = j.latest ? 'Du kører den nyeste version' : 'Klar'
-        setTimeout(finishSplash, 700)
-        return
-      }
-      $('splash-bar').classList.add('hide')
-      $('splash-text').textContent = 'Du kører ikke den nyeste version. Installer igen.'
-      const a = $('splash-get')
-      a.href = j.url || '#'
-      a.classList.remove('hide')
-    } catch (e) {
-      $('splash-text').textContent = 'Kunne ikke tjekke version'
-      setTimeout(finishSplash, 700)
-    }
-  }
-
-  $('splash-retry').onclick = function () { boot(true) }
-  boot(false)
+  load().catch(function () { show('view-login') })
 </script>
 </body>
 </html>

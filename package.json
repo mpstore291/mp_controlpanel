@@ -1,6 +1,6 @@
 {
   "name": "damz-bot",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Ticket bot",
   "author": "MP",
   "productName": "MP BotControle",
@@ -33,6 +33,8 @@
     },
     "files": [
       "electron/main.js",
+      "electron/preload.js",
+      "electron/splash.html",
       "files/index.js",
       "files/index.html",
       "files/icon.png"

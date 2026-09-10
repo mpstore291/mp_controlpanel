@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<title>MP BotControle</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #000;
+    color: #f2f2f2;
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+  }
+  html { padding-top: 36px; }
+  .drag {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: #000;
+    -webkit-app-region: drag;
+  }
+  #splash {
+    height: calc(100% - 0px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+  }
+  img {
+    width: 92px;
+    height: 92px;
+    animation: breathe 2.4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: .75; transform: scale(.98); }
+    50% { opacity: 1; transform: scale(1.02); }
+  }
+  .bar {
+    width: 240px;
+    height: 3px;
+    border-radius: 2px;
+    background: #1a1a1a;
+    overflow: hidden;
+  }
+  .bar span {
+    display: block;
+    height: 100%;
+    width: 35%;
+    background: #fff;
+    animation: slide 1.5s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(385%); }
+  }
+  #text { color: #8a8a8a; font-size: 13px; letter-spacing: .3px; }
+</style>
+</head>
+<body>
+<div class="drag"></div>
+<div id="splash">
+  <img src="../files/icon.png" alt="">
+  <div class="bar"><span></span></div>
+  <div id="text">Starter op...</div>
+</div>
+<script>
+  const el = document.getElementById('text')
+  if (window.mp && window.mp.onSplash) {
+    window.mp.onSplash(function (t) { el.textContent = t || '' })
+  }
+</script>
+</body>
+</html>
